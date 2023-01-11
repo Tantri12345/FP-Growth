@@ -189,5 +189,16 @@ summary(tr)
 ## 3       10
 ```
 
+## Frequency plot of top 10 Items
+```{r eval=FALSE}
+top_item<-Online_Retail %>%
+  dplyr::group_by(Description) %>%
+  dplyr::summarise(count=n()) %>%
+  dplyr::arrange(desc(count))
+
+summary(Online_Retail)
+```
+
 # Referensi
 https://rpubs.com/shah_np/463712
+https://rpubs.com/Tantri_12345
