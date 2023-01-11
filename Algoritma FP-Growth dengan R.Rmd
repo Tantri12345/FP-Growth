@@ -108,7 +108,7 @@ Online_Retail$Time <- format(Online_Retail$InvoiceDate, "%H:%M:%S")
 
 ```{r eval=FALSE}
 #ddply(dataframe, variables_to_be_used_to_split_data_frame, function_to_be_applied)
-transaction_data <- ddply(Online_Retail,c("InvoiceNo","Date"), function(df1)paste(df1$Description, collapse = ","))
+transaction_data <- 'ddply(Online_Retail,c("InvoiceNo","Date"), function(df1)paste(df1$Description, collapse = ","))'
 # paste() concatenates vectors to character and separated results using collapse=[any optional charcater string ]. Here ',' is used
 ```
 
@@ -116,7 +116,7 @@ transaction_data <- ddply(Online_Retail,c("InvoiceNo","Date"), function(df1)past
 ## Remove redundancies
 transaction_data$Invoiceno <- NULL # set column InvoiceNo of dataframe transactionData  
 transaction_data$Date <- NULL # set column Date of dataframe transactionData
-colnames(transaction_data) <- c("item") # Rename column to items
+'colnames(transaction_data) <- c("item") # Rename column to items'
 ```
 
 ## Write CSV
@@ -198,6 +198,66 @@ top_item<-Online_Retail %>%
 
 summary(Online_Retail)
 ```
+
+```{r eval=FALSE}
+##    InvoiceNo       StockCode        
+##  Min.   :536365   Length:406829     
+##  1st Qu.:549234   Class :character  
+##  Median :561893   Mode  :character  
+##  Mean   :560617                     
+##  3rd Qu.:572090                     
+##  Max.   :581587                     
+##  NA's   :8905                       
+##                              Description        Quantity        
+##  WHITE HANGING HEART T-LIGHT HOLDER:  2070   Min.   :-80995.00  
+##  REGENCY CAKESTAND 3 TIER          :  1905   1st Qu.:     2.00  
+##  JUMBO BAG RED RETROSPOT           :  1662   Median :     5.00  
+##  ASSORTED COLOUR BIRD ORNAMENT     :  1418   Mean   :    12.06  
+##  PARTY BUNTING                     :  1416   3rd Qu.:    12.00  
+##  LUNCH BAG RED RETROSPOT           :  1358   Max.   : 80995.00  
+##  (Other)                           :397000                      
+##   InvoiceDate                    UnitPrice          CustomerID   
+##  Min.   :2010-12-01 08:26:00   Min.   :    0.00   Min.   :12346  
+##  1st Qu.:2011-04-06 15:02:00   1st Qu.:    1.25   1st Qu.:13953  
+##  Median :2011-07-31 11:48:00   Median :    1.95   Median :15152  
+##  Mean   :2011-07-10 16:30:57   Mean   :    3.46   Mean   :15288  
+##  3rd Qu.:2011-10-20 13:06:00   3rd Qu.:    3.75   3rd Qu.:16791  
+##  Max.   :2011-12-09 12:50:00   Max.   :38970.00   Max.   :18287  
+##                                                                  
+##    Country               Date                Time          
+##  Length:406829      Min.   :2010-12-01   Length:406829     
+##  Class :character   1st Qu.:2011-04-06   Class :character  
+##  Mode  :character   Median :2011-07-31   Mode  :character  
+##                     Mean   :2011-07-10                     
+##                     3rd Qu.:2011-10-20                     
+##                     Max.   :2011-12-09                     
+## 
+```
+
+```{r eval=FALSE}
+top_items <-'head(top_items,10)
+
+ggplot(top_items,aes(x=reorder(Description,count), y=count))+
+  geom_bar(stat="identity",fill="cadetblue")+
+  coord_flip()+
+  scale_y_continuous(limits= c(0,3000))+
+  ggtitle("Frequency plot of top 10 Items")+
+  xlab("Description of items")+
+  ylab("Count")+
+  theme_fivethirtyeight()'
+```
+
+Memplot Frekuensi numerik setiap item secara terpisah
+Relatif: berapa kali item ini muncul dibandingkan dengan yang lain
+
+```{r eval=FALSE}
+itemFrequencyPlot(tr,topN=10,type="absolute",col=brewer.pal(8,'Pastel2'), main="Top 10 Absolute Item Frequency Plot", horiz = TRUE)
+```
+
+```{r eval=FALSE}
+itemFrequencyPlot(tr,topN=10,type="relative",col=brewer.pal(8,'Pastel2'),main="Top 10 Relative Item Frequency Plot", horiz = TRUE)
+```
+
 
 # Referensi
 https://rpubs.com/shah_np/463712
