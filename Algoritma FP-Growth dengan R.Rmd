@@ -191,6 +191,7 @@ Dengan demikian telah menyelesaikan Market Basket Analysis menggunakan algoritma
 
 
 # Referensi
-1. https://rpubs.com/shah_np/463712. https://rpubs.com/Tantri_12345
+1. https://rpubs.com/shah_np/463712. 
+2. https://rpubs.com/Tantri_12345
 3. https://www.kaggle.com/code/heeraldedhia/market-basket-analysis-using-apriori-algorithm/notebook
 4. https://www.kaggle.com/datasets/heeraldedhia/groceries-dataset?resource=download
