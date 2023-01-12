@@ -1,14 +1,11 @@
 ---
-title: "Algoritma FP-Growth dengan R"
-date: "`r Sys.Date()`"
+title: Algoritma FP-Growth dengan R
 author: Tantri Novita Sari-Institut Teknologi Statistika dan Bisnis Muhammadiyah
+date: "`r Sys.Date()`"
 output:
-  rmdformats::readthedown:
-    self_contained: true
-    thumbnails: true
-    lightbox: true
-    gallery: false
-    highlight: tango
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
 bibliography: references.bib
 ---
 
@@ -21,6 +18,7 @@ text-align: justify}
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 
 # Algoritma FP-Growth
 
@@ -56,209 +54,143 @@ FP-Growth merupakan algoritma yang lebih baik dibandingkan dengan algoritma apri
 # Eksperimen Algoritma
 
 ## library
-```{r eval=FALSE}
-library(tidyverse) # helpful in Data Cleaning and Manipuulation
-library(arules) # Mining Association Rules and frequent Itemsets
-library(arulesViz) # Visualizing Association Rules and requent Itemsets
-library(gridExtra) # Low-Level functions to create graphical objects
-library(ggthemes) #For cool themes like fivethirtyeight
-library(dplyr) # Data Manipulation
-library(readxl) #Read Excel Files in R
-library(plyr) # Tools for Splitting, Applying and Combining Data
-library(ggplot2) # Create grapics and chart
-library(knitr) # Dynamic Report generation in R
-library(lubridate) # Easier to work with dates and times
-library(kableExtra) # construct complex tables and customize styles
-library(RColorBrewer) # color schemes for plotting
 
+```{r}
+if(sessionInfo()['basePkgs']=="dplyr" | sessionInfo()['otherPkgs']=="dplyr"){
+  detach(package:dplyr, unload=TRUE)
+}
+
+if(sessionInfo()['basePkgs']=="tm" | sessionInfo()['otherPkgs']=="tm"){
+  detach(package:sentiment, unload=TRUE)
+  detach(package:tm, unload=TRUE)
+}
+
+library(plyr)
+library(arules)
+library(arulesViz)
+library(Matrix)
+library(base)
 ```
 
-## Data Preparation
-
-```{r eval=FALSE}
-Online_Retail <- read_excel("C:/Users/Windows 10/Downloads/Online Retail.xlsx")
-Online_Retail <- Online_Retail[complete.cases(Online_Retail),] # will clean up the non missing values.
+## Masukkan Dataset
+```{r}
+groceries <- readxl:: read_excel("~/Semester 3/Data Mining/Groceries_dataset.xlsx")
+class(groceries)
 ```
-Let's get an idea of what we're working with
 
-```{r eval=FALSE}
-glimpse (Online_Retail)
+## Pembersihan Data dan Eksplor
+```{r}
+str(groceries)
+```
+```{r}
+head(groceries)
+```
+## Mengecek Nilai NA
+```{r}
+sum(is.na(groceries))
+```
+## Konversi Nomor Anggota menjadi numrtik
+```{r}
+sorted <- groceries[order(groceries$Member_number),]
+```
+
+## Mengkonversi deskripsi item ke format kategoris
+```{r}
+sorted$Member_number <- as.numeric(sorted$Member_number)
+str(sorted)
+```
+## Kelompokkan semua item yang dibeli bersama oleh pelanggan yang sama pada tanggal yang sama
+```{r}
+itemList <- ddply(sorted, c("Member_number","Date"), function(df1)paste(df1$itemDescription,collapse = ","))
+
+head(itemList,15)
+```
+## Menghapus nomor dan tanggal anggota
+```{r}
+itemList$Member_number <- NULL
+itemList$Date <- NULL
+colnames(itemList) <- c("itemList")
 ```
 
 ```{r}
-## Observations: 406,829
-## Variables: 8
-## $ InvoiceNo   <chr> "536365", "536365", "536365", "536365", "536365", ...
-## $ StockCode   <chr> "85123A", "71053", "84406B", "84029G", "84029E", "...
-## $ Description <chr> "WHITE HANGING HEART T-LIGHT HOLDER", "WHITE METAL...
-## $ Quantity    <dbl> 6, 6, 8, 6, 6, 2, 6, 6, 6, 32, 6, 6, 8, 6, 6, 3, 2...
-## $ InvoiceDate <dttm> 2010-12-01 08:26:00, 2010-12-01 08:26:00, 2010-12...
-## $ UnitPrice   <dbl> 2.55, 3.39, 2.75, 3.39, 3.39, 7.65, 4.25, 1.85, 1....
-## $ CustomerID  <dbl> 17850, 17850, 17850, 17850, 17850, 17850, 17850, 1...
-## $ Country     <chr> "United Kingdom", "United Kingdom", "United Kingdo...
+write.csv(itemList,"ItemList.csv", quote = FALSE, row.names = TRUE)
+head(itemList)
 ```
-## Data Cleaning
-```{r eval=FALSE}
-Online_Retail$Description <- as.factor(Online_Retail$Description)
-Online_Retail$Country <- Online_Retail$Country
-Online_Retail$date <-as.Date(Online_Retail$InvoiceDate)
-Online_Retail$InvoiceNo <- as.numeric(as.character(Online_Retail$InvoiceNo))
-Online_Retail$Time <- format(Online_Retail$InvoiceDate, "%H:%M:%S")
+## Ubah file CSV ke Format Keranjang
+```{r}
+txn = read.transactions(file="ItemList.csv", rm.duplicates= TRUE, format="basket",sep=",",cols=1);
+print(txn)
+```
+## Hapus kutipan dari Transaksi
+```{r}
+txn@itemInfo$labels <- gsub("\"","",txn@itemInfo$labels)
 ```
 
-```{r eval=FALSE}
-#ddply(dataframe, variables_to_be_used_to_split_data_frame, function_to_be_applied)
-transaction_data <- 'ddply(Online_Retail,c("InvoiceNo","Date"), function(df1)paste(df1$Description, collapse = ","))'
-# paste() concatenates vectors to character and separated results using collapse=[any optional charcater string ]. Here ',' is used
+## Apriori Algorithm
+Apriori menghasilkan seperangkat aturan yang paling relevan dari data transaksi tertentu. Menunjukkan dukungan, kepercayaan diri, dan pencabutan aturan yang dapat digunakan untuk memutuskan kekuatan relatif aturan.
+
+```{r}
+basket_rules <- apriori(txn, parameter = list(minlen=2, sup = 0.001, conf = 0.05, target="rules"))
+```
+## Total aturan yang dihasilkan
+```{r}
+print(length(basket_rules))
+```
+```{r}
+summary(basket_rules)
+```
+## Memeriksa aturan keranjang
+```{r}
+inspect(basket_rules[1:20])
+```
+## Memvisualisasikan Aturan Asosiasi
+```{r}
+plot(basket_rules, jitter = 0)
 ```
 
-```{r eval=FALSE}
-## Remove redundancies
-transaction_data$Invoiceno <- NULL # set column InvoiceNo of dataframe transactionData  
-transaction_data$Date <- NULL # set column Date of dataframe transactionData
-'colnames(transaction_data) <- c("item") # Rename column to items'
+```{r}
+plot(basket_rules, method = "grouped", control = list(k = 5))
+```
+## Grafik 20 aturan pertama
+```{r}
+plot(basket_rules[1:20], method="graph")
+```
+## Grafik 50 aturan pertama
+```{r}
+plot(basket_rules[1:50], method="graph")
+```
+## Plot koordinat paralel
+```{r}
+plot(basket_rules[1:20], method="paracoord")
+```
+## Produk Yang Paling Sering Digunakan
+```{r}
+itemFrequencyPlot(txn, topN = 10)
+```
+## Mengubah hiperparameter
+```{r}
+basket_rules2 <- apriori(txn, parameter = list(minlen=3, sup = 0.001, conf = 0.1, target="rules"))
+```
+```{r}
+print(length(basket_rules2))
+```
+```{r}
+summary(basket_rules2)
+```
+```{r}
+inspect(basket_rules2)
+```
+```{r}
+plot(basket_rules2, method="graph")
+```
+```{r}
+plot(basket_rules2, method="paracoord")
 ```
 
-## Write CSV
-Simpan file sebagai output
-```{r eval=FALSE}
-write.csv(transaction_data, 'C:/Users/Windows 10/Downloads/Online Retail.xlsx', quote = FALSE, row.names = TRUE)
-# Quote : TRUE "character or factor column with double quotes."
-# Quote : FALSE nothing will be quoted
-# row.names : either a logical value indicating whether the row names of x are to be written along with x, or a character vector of row names to be written.
-```
-
-Mengubah file data transaksi dalam format keranjang menjadi objek kelas transaksi 
-
-```{r eval=FALSE}
-# Will get lots of EOF within quoted string in your output
-tr<- read.transactions('C:/Users/Windows 10/Downloads/Online Retail.xlsx', format = 'basket', sep=',')
-# sep tell how items are separated.
-```
-
-## Summary
-```{r eval=FALSE}
-summary(tr)
-```
-
-```{r eval=FALSE}
-## transactions as itemMatrix in sparse format with
-##  18839 rows (elements/itemsets/transactions) and
-##  26725 columns (items) and a density of 0.0007046267 
-## 
-## most frequent items:
-## WHITE HANGING HEART T-LIGHT HOLDER           REGENCY CAKESTAND 3 TIER 
-##                               1798                               1644 
-##            JUMBO BAG RED RETROSPOT                      PARTY BUNTING 
-##                               1450                               1282 
-##      ASSORTED COLOUR BIRD ORNAMENT                            (Other) 
-##                               1249                             347337 
-## 
-## element (itemset/transaction) length distribution:
-## sizes
-##    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15 
-##    1 1577  867  762  773  768  721  660  652  648  586  621  532  510  532 
-##   16   17   18   19   20   21   22   23   24   25   26   27   28   29   30 
-##  555  525  470  442  483  425  396  319  310  276  241  255  230  218  223 
-##   31   32   33   34   35   36   37   38   39   40   41   42   43   44   45 
-##  215  173  163  143  146  139  112  118   89  117   96   97   89   93   67 
-##   46   47   48   49   50   51   52   53   54   55   56   57   58   59   60 
-##   66   68   65   61   64   53   67   43   42   50   43   37   31   40   30 
-##   61   62   63   64   65   66   67   68   69   70   71   72   73   74   75 
-##   27   28   18   26   25   20   27   25   25   15   20   20   13   16   16 
-##   76   77   78   79   80   81   82   83   84   85   86   87   88   89   90 
-##   12   16   12    7    9   14   15   12    8    9   11   11   14    8    6 
-##   91   92   93   94   95   96   97   98   99  100  101  102  103  104  105 
-##    5    6   12    6    4    4    3    6    5    2    4    2    5    4    3 
-##  106  107  108  109  110  111  112  113  114  115  117  118  119  121  122 
-##    2    2    6    3    4    3    2    1    3    1    4    3    3    1    2 
-##  123  124  126  127  128  132  133  134  135  141  142  143  144  146  147 
-##    2    1    3    2    2    1    1    2    1    1    2    2    1    1    2 
-##  148  151  155  158  169  172  178  179  181  203  205  229  237  250  251 
-##    1    1    3    2    2    2    1    1    1    1    1    1    1    1    1 
-##  286  321  401  420 
-##    1    1    1    1 
-## 
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##    1.00    6.00   14.00   18.83   24.00  420.00 
-## 
-## includes extended item information - examples:
-##     labels
-## 1        1
-## 2 1 HANGER
-## 3       10
-```
-
-## Frequency plot of top 10 Items
-```{r eval=FALSE}
-top_item<-Online_Retail %>%
-  dplyr::group_by(Description) %>%
-  dplyr::summarise(count=n()) %>%
-  dplyr::arrange(desc(count))
-
-summary(Online_Retail)
-```
-
-```{r eval=FALSE}
-##    InvoiceNo       StockCode        
-##  Min.   :536365   Length:406829     
-##  1st Qu.:549234   Class :character  
-##  Median :561893   Mode  :character  
-##  Mean   :560617                     
-##  3rd Qu.:572090                     
-##  Max.   :581587                     
-##  NA's   :8905                       
-##                              Description        Quantity        
-##  WHITE HANGING HEART T-LIGHT HOLDER:  2070   Min.   :-80995.00  
-##  REGENCY CAKESTAND 3 TIER          :  1905   1st Qu.:     2.00  
-##  JUMBO BAG RED RETROSPOT           :  1662   Median :     5.00  
-##  ASSORTED COLOUR BIRD ORNAMENT     :  1418   Mean   :    12.06  
-##  PARTY BUNTING                     :  1416   3rd Qu.:    12.00  
-##  LUNCH BAG RED RETROSPOT           :  1358   Max.   : 80995.00  
-##  (Other)                           :397000                      
-##   InvoiceDate                    UnitPrice          CustomerID   
-##  Min.   :2010-12-01 08:26:00   Min.   :    0.00   Min.   :12346  
-##  1st Qu.:2011-04-06 15:02:00   1st Qu.:    1.25   1st Qu.:13953  
-##  Median :2011-07-31 11:48:00   Median :    1.95   Median :15152  
-##  Mean   :2011-07-10 16:30:57   Mean   :    3.46   Mean   :15288  
-##  3rd Qu.:2011-10-20 13:06:00   3rd Qu.:    3.75   3rd Qu.:16791  
-##  Max.   :2011-12-09 12:50:00   Max.   :38970.00   Max.   :18287  
-##                                                                  
-##    Country               Date                Time          
-##  Length:406829      Min.   :2010-12-01   Length:406829     
-##  Class :character   1st Qu.:2011-04-06   Class :character  
-##  Mode  :character   Median :2011-07-31   Mode  :character  
-##                     Mean   :2011-07-10                     
-##                     3rd Qu.:2011-10-20                     
-##                     Max.   :2011-12-09                     
-## 
-```
-
-```{r eval=FALSE}
-top_items <-'head(top_items,10)
-
-ggplot(top_items,aes(x=reorder(Description,count), y=count))+
-  geom_bar(stat="identity",fill="cadetblue")+
-  coord_flip()+
-  scale_y_continuous(limits= c(0,3000))+
-  ggtitle("Frequency plot of top 10 Items")+
-  xlab("Description of items")+
-  ylab("Count")+
-  theme_fivethirtyeight()'
-```
-
-Memplot Frekuensi numerik setiap item secara terpisah
-Relatif: berapa kali item ini muncul dibandingkan dengan yang lain
-
-```{r eval=FALSE}
-itemFrequencyPlot(tr,topN=10,type="absolute",col=brewer.pal(8,'Pastel2'), main="Top 10 Absolute Item Frequency Plot", horiz = TRUE)
-```
-
-```{r eval=FALSE}
-itemFrequencyPlot(tr,topN=10,type="relative",col=brewer.pal(8,'Pastel2'),main="Top 10 Relative Item Frequency Plot", horiz = TRUE)
-```
+Dengan demikian telah menyelesaikan Market Basket Analysis menggunakan algoritma Apriori (FP-Growth) pada R
 
 
 # Referensi
-https://rpubs.com/shah_np/463712
-https://rpubs.com/Tantri_12345
+1. https://rpubs.com/shah_np/463712. https://rpubs.com/Tantri_12345
+3. https://www.kaggle.com/code/heeraldedhia/market-basket-analysis-using-apriori-algorithm/notebook
+4. https://www.kaggle.com/datasets/heeraldedhia/groceries-dataset?resource=download
