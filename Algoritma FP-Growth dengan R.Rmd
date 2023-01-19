@@ -136,7 +136,21 @@ txn@itemInfo$labels <- gsub("\"","",txn@itemInfo$labels)
 ```
 
 ## Apriori Algorithm
-Apriori menghasilkan seperangkat aturan yang paling relevan dari data transaksi tertentu. Menunjukkan dukungan, kepercayaan diri, dan pencabutan aturan yang dapat digunakan untuk memutuskan kekuatan relatif aturan.
+Algoritma Apriori adalah algoritma yang digunakan untuk menghitung aturan asosiasi antar objek. Aturan asosiasi menjelaskan bagaimana dua atau lebih objek terkait satu sama lain. Apriori menghasilkan seperangkat aturan yang paling relevan dari data transaksi tertentu. Menunjukkan dukungan, kepercayaan diri, dan pencabutan aturan yang dapat digunakan untuk memutuskan kekuatan relatif aturan.
+
+Tahapan untuk menganalisis aturan asosiasi yaitu:
+
+1. Analisa pola frekuensi tinggi (Support)
+
+    $\begin{array}{ll}\text { Support }(\mathrm{A}) & =\frac{\Sigma \text { Transaksi mengandung } A}{\Sigma \text { Transaksi }} \times 100 \% \\ \text { Support }(\mathrm{A} \mid \mathrm{B}) & =\frac{\Sigma \text { Transaksi mengandung } A \text { dan } B}{\Sigma \text { Transaksi } A} \times 100 \%\end{array}$
+
+2. Pembentukan aturan asosiasi (Confidence)
+
+    $\begin{aligned} \text { Confidence }(\mathrm{A} \mid \mathrm{B}) & \rightarrow(\mathrm{A \cap B}) \\ & =\frac{\Sigma \text { Transaksi mengandung } A \text { dan } B}{\Sigma \text { Transaksi } A} \times 100 \%\end{aligned}$
+
+3. Mengetahui kekuatan aturan asosiasi (association rule) yang telah terbentuk dari nilai support dan confidence
+
+    Lift $=\frac{\text { Support }}{\operatorname{Supp}(X) \times \operatorname{Supp}(Y)}$
 
 ```{r}
 basket_rules <- apriori(txn, parameter = list(minlen=2, sup = 0.001, conf = 0.05, target="rules"))
