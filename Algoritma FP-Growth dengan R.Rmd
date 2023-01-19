@@ -252,5 +252,6 @@ Dengan demikian telah menyelesaikan Market Basket Analysis menggunakan algoritma
 # Referensi
 1. https://www.kaggle.com/code/heeraldedhia/market-basket-analysis-using-apriori-algorithm/notebook
 2. https://rpubs.com/Tantri_12345
-3. https://www.kaggle.com/datasets/heeraldedhia/groceries-dataset?resource=download
-4. https://gifadn.medium.com/market-basket-analisys-mba-dengan-menggunakan-datasets-groceries-di-r-62f63f0278c4
+3. https://github.com/Tantri12345/FP-Growth
+4. https://www.kaggle.com/datasets/heeraldedhia/groceries-dataset?resource=download
+5. https://gifadn.medium.com/market-basket-analisys-mba-dengan-menggunakan-datasets-groceries-di-r-62f63f0278c4
